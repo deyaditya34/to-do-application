@@ -10,9 +10,9 @@ const getTask = require("./get-task.api");
 const router = express.Router();
 
 router.post("/create", createTask);
-router.post("/delete", deleteTask);
-router.post("/update", updateTask);
-router.post("/status", taskStatus);
+router.delete("/delete", deleteTask);
+router.put("/update", updateTask);
+router.put("/status", taskStatus);
 router.get("/search", searchTasks);
 router.get("/get", getTask);
 module.exports = router;
