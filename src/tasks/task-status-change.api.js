@@ -1,68 +1,43 @@
 const httpError = require("http-errors");
+
 const buildApiHandler = require("../api-utils/build-api-handler");
 const userResolver = require("../middlewares/user-resolver");
-const paramsValidator = require("../middlewares/params-validator");
 const tasksService = require("./tasks.service");
 
 async function controller(req, res) {
-  const {taskId, status} = req.body;
+  const { id, newStatus } = req.params;
 
-  const result = await tasksService.updateTask(taskId, {status});
+  const result = await tasksService.updateTask(id, { status: newStatus });
 
   res.json({
     message: "status updated",
     data: result.acknowledged,
-  })
+  });
 }
 
 async function validateParams(req, res, next) {
+  const { id, newStatus } = req.params;
   const {user} = req.body;
-  const reqElements = Object.keys(req.body);
-  // For deleting 'user' sent from userResolver
-  reqElements.pop();
 
-  const errorTypedFields = reqElements.filter((field) => {
-    return typeof Reflect.get(req.body, field) !== "string";
-  })
+  const getTask = await tasksService.getTask(id, user.username);
 
-  if (errorTypedFields.length > 0) {
-    throw new httpError.BadRequest(
-      `Field '${errorTypedFields.join(", ")}' should be of 'string' type.`
-    )
+  if (!getTask) {
+    throw new httpError.BadRequest(`Field id - '${id}' is invalid.`);
   }
 
-  const taskIdValidator = await tasksService.getTask(req.body.taskId, user.username);
-
-  if (!taskIdValidator) {
+  if (newStatus !== "pending" && req.body.status !== "complete") {
     throw new httpError.BadRequest(
-      `Field taskId - '${req.body.taskId}' is invalid.`
-    )
+      `Field newStatus '${newStatus}' is invalid. It should either be 'pending' or 'complete'.`
+    );
   }
 
-  if ((req.body.status !== "pending" && req.body.status !== "complete")) {
+  if (getTask.status === newStatus) {
     throw new httpError.BadRequest(
-      `Field status '${req.body.status}' is invalid. It should either be 'pending' or 'complete'.`
-    )
+      `Field status - '${newStatus}' is already updated for the id - '${id}'.`
+    );
   }
 
-  if (taskIdValidator.status === req.body.status) {
-    throw new httpError.BadRequest(
-      `Field status - '${req.body.status}' is already updated.`
-    )
-  }
-  
   next();
 }
 
-
-const missingParamsValidator = paramsValidator.createParamsValidator(
-  ["taskId", "status"],
-  paramsValidator.PARAM_KEY.BODY
-);
-
-module.exports = buildApiHandler([
-  userResolver,
-  missingParamsValidator,
-  validateParams,
-  controller,
-]);
+module.exports = buildApiHandler([userResolver, validateParams, controller]);

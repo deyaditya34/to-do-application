@@ -7,10 +7,11 @@ const updateCategory = require("./update-category.api");
 
 const router = express.Router();
 
-router.post("/create", createCategory);
-router.delete("/delete", deleteCategory);
-router.get("/get", getCategory);
-router.get("/get", searchCategory);
-router.put("/update", updateCategory);
+router.post("/", createCategory);
+router.get("/", searchCategory);
+router.get("/:id", getCategory);
+router.put("/:id", updateCategory);
+router.delete("/:id", deleteCategory);
 
 module.exports = router;
+

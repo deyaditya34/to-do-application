@@ -23,6 +23,12 @@ function getCategory(id) {
     .findOne({ _id: new ObjectId(id) });
 }
 
+function getCategoryByName(categoryName) {
+  return database
+    .getCollection(config.COLLECTION_NAMES.CATEGORIES)
+    .findOne({categoryName: categoryName})
+}
+
 function deleteCategory(id) {
   return database
     .getCollection(config.COLLECTION_NAMES.CATEGORIES)
@@ -40,5 +46,6 @@ module.exports = {
   getCategory,
   searchCategory,
   deleteCategory,
-  updateCategory
+  updateCategory,
+  getCategoryByName
 };

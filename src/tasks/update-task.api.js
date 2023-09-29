@@ -1,17 +1,19 @@
 const httpError = require("http-errors");
+const dayjs = require("dayjs");
+const customParseFormat = require("dayjs/plugin/customParseFormat");
+dayjs.extend(customParseFormat);
+
 const tasksService = require("./tasks.service");
 const buildApiHandler = require("../api-utils/build-api-handler");
 const userResolver = require("../middlewares/user-resolver");
 const paramsValidator = require("../middlewares/params-validator");
 const categoryService = require("../categories/categories.service");
-const dayjs = require("dayjs");
-const customParseFormat = require("dayjs/plugin/customParseFormat");
-dayjs.extend(customParseFormat);
 
 async function controller(req, res) {
-  const { updateDetails, taskId } = req.body;
+  const { updateDetails } = req.body;
+  const { id } = req.params;
 
-  const result = await tasksService.updateTask(taskId, updateDetails);
+  const result = await tasksService.updateTask(id, updateDetails);
 
   if (result.modifiedCount === 1) {
     res.json({
@@ -26,7 +28,8 @@ async function controller(req, res) {
 }
 
 async function validateParams(req, res, next) {
-  const { updateDetails, taskId, user } = req.body;
+  const { updateDetails, user } = req.body;
+  const { id } = req.params;
   const parsedUpdateDetails = {};
   let updateElements = Object.keys(updateDetails);
 
@@ -54,12 +57,17 @@ async function validateParams(req, res, next) {
         `Field duedate - '${updateDetails.dueDate}' should be of 'string' type`
       );
     }
+
+    parsedUpdateDetails["dueDate"] = dayjs(
+      updateDetails.dueDate,
+      "YYYY-MM-DD"
+    ).format();
   }
 
   if (updateDetails.categoryId) {
-    const categoryValidator = await categoryService.getCategory(categoryId);
+    const getCategory = await categoryService.getCategory(categoryId);
 
-    if (!categoryValidator) {
+    if (!getCategory) {
       throw new httpError.BadRequest(
         `Field categoryId - '${categoryId} is invalid.`
       );
@@ -68,29 +76,18 @@ async function validateParams(req, res, next) {
     }
   }
 
-  if (typeof taskId !== "string") {
-    throw new httpError.BadRequest(
-      `Field taskId - '${taskId}' should be of 'string' type.`
-    );
+  const getTask = await tasksService.getTask(id, user.username);
+
+  if (!getTask) {
+    throw new httpError.BadRequest(`Field taskId - '${id}' is invalid.`);
   }
-
-  const taskIdValidator = await tasksService.getTask(taskId, user.username);
-
-  if (!taskIdValidator) {
-    throw new httpError.BadRequest(`Field taskId - '${taskId}' is invalid.`);
-  }
-
-  parsedUpdateDetails["dueDate"] = dayjs(
-    updateDetails.dueDate,
-    "YYYY-MM-DD"
-  ).format();
 
   Reflect.set(req.body, "updateDetails", parsedUpdateDetails);
   next();
 }
 
 const missingParamsValidator = paramsValidator.createParamsValidator(
-  ["updateDetails", "taskId"],
+  ["updateDetails"],
   paramsValidator.PARAM_KEY.BODY
 );
 

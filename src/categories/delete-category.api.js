@@ -1,34 +1,29 @@
 const httpError = require("http-errors");
+
 const categoriesService = require("./categories.service");
 const buildApiHandler = require("../api-utils/build-api-handler");
 const userResolver = require("../middlewares/user-resolver");
 const paramsValidator = require("../middlewares/params-validator");
 
 async function controller(req, res) {
-  const { categoryId } = req.body;
+  const { id } = req.params;
 
-  const result = await categoriesService.deleteCategory(categoryId);
+  const result = await categoriesService.deleteCategory(id);
 
   res.json({
     message: "Category Deleted",
-    data: result.acknowledged,
+    success: result.acknowledged,
   });
 }
 
 async function validateParams(req, res, next) {
-  const { categoryId } = req.body;
+  const { id } = req.params;
 
-  if (typeof categoryId !== "string") {
+  const getCategory = await categoriesService.getCategory(id);
+
+  if (!getCategory) {
     throw new httpError.BadRequest(
-      `Field categoryId - '${categoryId}' should be of 'string' type.`
-    );
-  }
-
-  const categoryIdValidator = await categoriesService.getCategory(categoryId);
-
-  if (!categoryIdValidator) {
-    throw new httpError.BadRequest(
-      `Field categoryId - '${categoryId}' is invalid.`
+      `Field id - '${id}' is invalid.`
     );
   }
 
@@ -36,8 +31,8 @@ async function validateParams(req, res, next) {
 }
 
 const missingParamsValidator = paramsValidator.createParamsValidator(
-  ["categoryId"],
-  paramsValidator.PARAM_KEY.BODY
+  ["id"],
+  paramsValidator.PARAM_KEY.PARAMS
 );
 
 module.exports = buildApiHandler([

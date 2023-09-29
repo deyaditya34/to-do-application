@@ -1,13 +1,13 @@
+const httpError = require("http-errors");
+
 const categoryService = require("./categories.service");
 const buildApiHandler = require("../api-utils/build-api-handler");
 const userResolver = require("../middlewares/user-resolver");
 const paramsValidator = require("../middlewares/params-validator");
-const pagination = require("../middlewares/pagination");
-const httpError = require("http-errors");
 
 async function controller(req, res) {
   const { categoryName } = req.body;
-  
+
   const result = await categoryService.createCategory({ categoryName });
 
   res.json({
@@ -17,22 +17,19 @@ async function controller(req, res) {
 }
 
 async function validateParams(req, res, next) {
-  if (typeof Reflect.get(req.body, "categoryName") !== "string") {
+  const { categoryName } = req.body;
+  
+  if (typeof categoryName !== "string") {
     throw new httpError.BadRequest(
       " Field 'categoryName' should be of string type"
     );
   }
 
-  const { categoryName } = req.body;
-  const {pageNo, pageSize} = req.query;
-
-  const categoryValidator = await categoryService.searchCategory(
-    { categoryName },
-    pageNo,
-    pageSize
+  const existingCategory = await categoryService.getCategoryByName(
+    categoryName
   );
 
-  if (categoryValidator.length > 0) {
+  if (existingCategory) {
     throw new httpError.BadRequest(`Category '${categoryName}' already exists`);
   }
 
@@ -47,7 +44,6 @@ const missingParamsValidator = paramsValidator.createParamsValidator(
 module.exports = buildApiHandler([
   userResolver,
   missingParamsValidator,
-  pagination,
   validateParams,
   controller,
 ]);

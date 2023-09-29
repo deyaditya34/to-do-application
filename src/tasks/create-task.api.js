@@ -1,23 +1,24 @@
+const dayjs = require("dayjs");
+const customParseFormat = require("dayjs/plugin/customParseFormat");
+dayjs.extend(customParseFormat);
+const httpError = require("http-errors");
+
 const buildApiHandler = require("../api-utils/build-api-handler");
 const userResolver = require("../middlewares/user-resolver");
 const paramsValidator = require("../middlewares/params-validator");
 const pagination = require("../middlewares/pagination");
-const httpError = require("http-errors");
 const categoryService = require("../categories/categories.service");
 const tasksService = require("./tasks.service");
-const dayjs = require("dayjs");
-const customParseFormat = require("dayjs/plugin/customParseFormat");
-dayjs.extend(customParseFormat);
 
 async function controller(req, res) {
-  const { title, description, category, dueDate, user, status } = req.body;
+  const { title, description, categoryDetails, dueDate, user } = req.body;
 
   const transactionCreated = await tasksService.createTask({
     title,
     description,
-    category,
+    categoryName: categoryDetails.categoryName,
     dueDate,
-    status,
+    status: "pending",
     createdAt: dayjs(new Date()).format(),
     createdBy: user.username,
   });
@@ -48,18 +49,14 @@ async function validateParams(req, res, next) {
       );
     }
 
-    const categoryValidator = await categoryService.getCategory(categoryId);
+    const getCategory = await categoryService.getCategory(categoryId);
 
-    if (!categoryValidator) {
+    if (!getCategory) {
       throw new httpError.BadRequest(
         `Field categoryId - '${categoryId}' is invalid.`
       );
     }
-  } else {
-    const defaultCategory = await categoryService.getCategory(
-      "65147cabcce28d2332ff406e"
-    );
-    Reflect.set(req.body, "category", defaultCategory.categoryName);
+    Reflect.set(req.body, "categoryDetails", getCategory);
   }
 
   if (dueDate) {
@@ -74,11 +71,7 @@ async function validateParams(req, res, next) {
     }
 
     Reflect.set(req.body, "dueDate", dayjs(dueDate, "YYYY-MM-DD").format());
-  } else {
-    Reflect.set(req.body, "dueDate", "not Set");
   }
-  
-  Reflect.set(req.body, "status", "pending");
 
   next();
 }
