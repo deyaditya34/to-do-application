@@ -2,7 +2,6 @@ const authService = require("./auth.service");
 const buildApiHandler = require("../api-utils/build-api-handler");
 const userResolver = require("../middlewares/user-resolver");
 const paramsValidator = require("../middlewares/params-validator");
-const authUtils = require("./auth.utils");
 const { checkAdminRights } = require("./auth.register.api");
 
 async function controller(req, res) {
