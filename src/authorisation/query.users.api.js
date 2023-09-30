@@ -6,10 +6,10 @@ const authUtils = require("./auth.utils");
 const { checkAdminRights } = require("./auth.register.api");
 
 async function controller(req, res) {
-  const { query } = req.body;
+  const { username } = req.params;
 
   const result = await authService.findUsers({
-    ...query,
+    username: username,
     role: { $ne: "ADMIN" },
   });
 
@@ -26,27 +26,13 @@ async function controller(req, res) {
 }
 
 const missingParamsValidator = paramsValidator.createParamsValidator(
-  ["query"],
-  paramsValidator.PARAM_KEY.BODY
+  ["username"],
+  paramsValidator.PARAM_KEY.PARAMS
 );
-
-function validateUsername(req, res, next) {
-  const { username } = req.body.query;
-
-  let parsedQuery = {};
-
-  if (typeof username === "string") {
-    parsedQuery.username = { $regex: username };
-  }
-
-  Reflect.set(req.body, "query", parsedQuery);
-  next;
-}
 
 module.exports = buildApiHandler([
   userResolver,
   checkAdminRights,
   missingParamsValidator,
-  validateUsername,
   controller,
 ]);

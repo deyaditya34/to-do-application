@@ -1,5 +1,6 @@
 const httpError = require("http-errors");
 const { scryptSync } = require("crypto");
+
 const config = require("../config");
 
 function  validateUsername(req, res, next) {
